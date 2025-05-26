@@ -1,0 +1,92 @@
+---
+/**
+ * Getting the parameters from the URL to use in the map
+ * @type {import('astro').PageData}
+ * @property {import('astro').URLSearchParams} searchParams
+ * @property {string} searchParams.lat
+ * @property {string} searchParams.lon
+ * @property {string} searchParams.zoom
+ */
+const { searchParams } = Astro.url;
+
+const lat = searchParams.get('lat');
+const lon = searchParams.get('lon');
+const zoom = searchParams.get('zoom');
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <title>Traffic Layer</title>
+    <style>
+      html,
+      body,
+      #map-canvas {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map-canvas"></div>
+  </body>
+  <script define:vars={{lat, lon, zoom}}>
+    /**
+     * Load the Google Maps script only once, using a promise
+     * @returns {Promise<void>}
+     */
+    const loadGoogleMapsScript = () => {
+      return new Promise((resolve, reject) => {
+        if (window.google && window.google.maps) {
+          resolve();
+          return;
+        }
+        if (document.getElementById('google-maps-script')) {
+          // If script is already being loaded, wait for it
+          window.initMap = resolve;
+          return;
+        }
+        const script = document.createElement('script');
+        script.id = 'google-maps-script';
+        script.src = 'https://maps.googleapis.com/maps/api/js?callback=initMap';
+        script.async = true;
+        script.defer = true;
+        script.onerror = reject;
+        window.initMap = resolve;
+        document.head.appendChild(script);
+      });
+    };
+
+    const isValidNumber = value => typeof value === 'number' && !isNaN(value);
+
+    const initializeMap = () => {
+      const mapElement = document.getElementById('map-canvas');
+      const latNum = Number(lat);
+      const lonNum = Number(lon);
+      const zoomNum = Number(zoom);
+
+      if (!mapElement || !isValidNumber(latNum) || !isValidNumber(lonNum) || !isValidNumber(zoomNum)) {
+        console.error('Invalid map parameters');
+        return;
+      }
+
+      const myLatlng = new google.maps.LatLng(latNum, lonNum);
+      const mapOptions = {
+        zoom: zoomNum,
+        center: myLatlng
+      };
+
+      const map = new google.maps.Map(mapElement, mapOptions);
+      const trafficLayer = new google.maps.TrafficLayer();
+      trafficLayer.setMap(map);
+    };
+
+    loadGoogleMapsScript()
+      .then(initializeMap)
+      .catch(err => {
+        console.error('Failed to load Google Maps script:', err);
+      });
+  </script>
+</html>
