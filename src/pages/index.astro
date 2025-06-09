@@ -1,19 +1,3 @@
----
-/**
- * Getting the parameters from the URL to use in the map
- * @type {import('astro').PageData}
- * @property {import('astro').URLSearchParams} searchParams
- * @property {string} searchParams.lat
- * @property {string} searchParams.lon
- * @property {string} searchParams.zoom
- */
-const { searchParams } = Astro.url;
-
-const lat = searchParams.get('lat');
-const lon = searchParams.get('lon');
-const zoom = searchParams.get('zoom');
----
-
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -32,7 +16,7 @@ const zoom = searchParams.get('zoom');
   <body>
     <div id="map-canvas"></div>
   </body>
-  <script define:vars={{lat, lon, zoom}}>
+  <script define:vars={{}}>
     /**
      * Load the Google Maps script only once, using a promise
      * @returns {Promise<void>}
@@ -62,6 +46,13 @@ const zoom = searchParams.get('zoom');
     const isValidNumber = value => typeof value === 'number' && !isNaN(value);
 
     const initializeMap = () => {
+      const params = new URLSearchParams(window.location.search);
+
+      const lat = params.get('lat');
+      const lon = params.get('lon');
+      const zoom = params.get('zoom');
+      const icon = params.get('icon');
+
       const mapElement = document.getElementById('map-canvas');
       const latNum = Number(lat);
       const lonNum = Number(lon);
@@ -73,13 +64,46 @@ const zoom = searchParams.get('zoom');
       }
 
       const myLatlng = new google.maps.LatLng(latNum, lonNum);
+
       const mapOptions = {
         zoom: zoomNum,
         center: myLatlng
       };
 
+
+      console.log('mapOptions', mapOptions);
+
       const map = new google.maps.Map(mapElement, mapOptions);
       const trafficLayer = new google.maps.TrafficLayer();
+
+      if(icon) {
+
+        let icon;
+
+        switch(icon) {
+          case 'store':
+            icon = 'https://picker-dashboard.s3.amazonaws.com/icons/store_location.svg';
+            break;
+          case 'customer':
+            icon = 'https://picker-dashboard.s3.amazonaws.com/icons/customer_location.svg';
+            break;
+          default:
+            icon = 'https://picker-dashboard.s3.amazonaws.com/icons/store_location.svg';
+            break;
+        }
+
+        const pinIcon = {
+          url: icon,
+          scaledSize: new google.maps.Size(50, 50)
+        };
+
+        new google.maps.Marker({
+          position: myLatlng,
+          icon: pinIcon,
+          map: map
+        });
+      }
+
       trafficLayer.setMap(map);
     };
 
